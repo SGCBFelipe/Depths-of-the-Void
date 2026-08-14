@@ -7,10 +7,10 @@ public class cameraPlayer : MonoBehaviour
     [SerializeField] private InputActionReference lookAction;
 
     [Header("References")]
-    [SerializeField] private Transform offsetCamera;
+    [SerializeField] private Transform offsetCamera; // No Cinemachine, chamamos isso de "CameraRoot" ou "CameraTarget"
 
     [Header("Settings")]
-    [SerializeField] private float sensitivity = 0.1f;
+    [SerializeField] private float sensitivity = 0.5f;
 
     [SerializeField] private float minPitch = -90f;
     [SerializeField] private float maxPitch = 90f;
@@ -19,12 +19,12 @@ public class cameraPlayer : MonoBehaviour
 
     private void OnEnable()
     {
-        lookAction.action.Enable();
+        lookAction?.action.Enable();
     }
 
     private void OnDisable()
     {
-        lookAction.action.Disable();
+        lookAction?.action.Disable();
     }
 
     private void Start()
@@ -40,24 +40,20 @@ public class cameraPlayer : MonoBehaviour
 
     private void HandleLook()
     {
-        Vector2 lookInput =
-            lookAction.action.ReadValue<Vector2>();
+        if (lookAction == null || offsetCamera == null) return;
+
+        Vector2 lookInput = lookAction.action.ReadValue<Vector2>();
 
         float mouseX = lookInput.x * sensitivity;
         float mouseY = lookInput.y * sensitivity;
 
-        // Rotação horizontal
+        // Rotação horizontal (Vira o corpo inteiro do Player)
         transform.Rotate(Vector3.up * mouseX);
 
-        // Rotação vertical
+        // Rotação vertical (Levanta/Abaixa apenas o pescoço/alvo da câmera)
         pitch -= mouseY;
-        pitch = Mathf.Clamp(
-            pitch,
-            minPitch,
-            maxPitch
-        );
+        pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
 
-        offsetCamera.localRotation =
-            Quaternion.Euler(pitch, 0f, 0f);
+        offsetCamera.localRotation = Quaternion.Euler(pitch, 0f, 0f);
     }
 }

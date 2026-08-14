@@ -20,18 +20,16 @@ public class movePlayer : MonoBehaviour
     private CharacterController controller;
     private float verticalVelocity;
 
+    // Vetor que acumulará toda a movimentação do frame
+    private Vector3 frameVelocity;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
 
-        if (moveAction == null)
-            Debug.LogError("Move Action não foi atribuída!", this);
-
-        if (sprintAction == null)
-            Debug.LogError("Sprint Action não foi atribuída!", this);
-
-        if (jumpAction == null)
-            Debug.LogError("Jump Action não foi atribuída!", this);
+        if (moveAction == null) Debug.LogError("Move Action não foi atribuída!", this);
+        if (sprintAction == null) Debug.LogError("Sprint Action não foi atribuída!", this);
+        if (jumpAction == null) Debug.LogError("Jump Action não foi atribuída!", this);
     }
 
     private void OnEnable()
@@ -50,69 +48,46 @@ public class movePlayer : MonoBehaviour
 
     private void Update()
     {
-        HandleMovement();
-        HandleJumpAndGravity();
+        // Resetamos a velocidade do frame
+        frameVelocity = Vector3.zero;
+
+        CalculateMovement();
+        CalculateJumpAndGravity();
+
+        // Uma única chamada de Move() no final do Update
+        controller.Move(frameVelocity * Time.deltaTime);
     }
 
-    private void HandleMovement()
+    private void CalculateMovement()
     {
-        if (moveAction == null)
-            return;
+        if (moveAction == null) return;
 
         Vector2 input = moveAction.action.ReadValue<Vector2>();
+        bool isSprinting = sprintAction != null && sprintAction.action.IsPressed();
+        float currentSpeed = isSprinting ? sprintSpeed : walkSpeed;
 
-        bool isSprinting =
-            sprintAction != null &&
-            sprintAction.action.IsPressed();
+        Vector3 moveDirection = transform.right * input.x + transform.forward * input.y;
 
-        float currentSpeed =
-            isSprinting ? sprintSpeed : walkSpeed;
-
-        Vector3 moveDirection =
-            transform.right * input.x +
-            transform.forward * input.y;
-
-        controller.Move(
-            moveDirection *
-            currentSpeed *
-            Time.deltaTime
-        );
-
-#if UNITY_EDITOR
-        if (input != Vector2.zero)
-        {
-            Debug.Log($"Input: {input}");
-        }
-#endif
+        // Adicionamos a movimentação horizontal ao vetor do frame
+        frameVelocity += moveDirection * currentSpeed;
     }
 
-    private void HandleJumpAndGravity()
+    private void CalculateJumpAndGravity()
     {
         if (controller.isGrounded)
         {
             if (verticalVelocity < 0f)
-                verticalVelocity = -2f;
+                verticalVelocity = -2f; // Mantém o player grudado no chão
 
-            if (
-                jumpAction != null &&
-                jumpAction.action.WasPressedThisFrame()
-            )
+            if (jumpAction != null && jumpAction.action.WasPressedThisFrame())
             {
-                verticalVelocity =
-                    Mathf.Sqrt(
-                        jumpHeight *
-                        -2f *
-                        gravity
-                    );
+                verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
             }
         }
 
         verticalVelocity += gravity * Time.deltaTime;
 
-        controller.Move(
-            Vector3.up *
-            verticalVelocity *
-            Time.deltaTime
-        );
+        // Adicionamos a gravidade/pulo ao vetor do frame
+        frameVelocity += Vector3.up * verticalVelocity;
     }
 }

@@ -41,7 +41,5 @@ public class HeadbobSystem : MonoBehaviour
         pos.y = Mathf.Lerp(pos.y, Mathf.Sin(Time.time * frequency) * amount * 1.4f, Smooth * Time.deltaTime );
         pos.x = Mathf.Lerp(pos.x, Mathf.Cos(Time.time * frequency / 2f) * amount * 1.6f ,Smooth * Time.deltaTime );
         transform.localPosition += pos;
-
-        return pos;
     }
 }
