@@ -12,6 +12,9 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float tempoMinParado = 2f;
     [SerializeField] private float tempoMaxParado = 5f;
 
+    [Header("Animação")]
+    [SerializeField] private Animator animator;
+
     private NavMeshAgent agent;
     private EstadoInimigo estadoAtual;
     private bool estaMudandoDeEstado = false;
@@ -19,6 +22,10 @@ public class Enemy : MonoBehaviour
     void Start()
     {
         agent = GetComponent<NavMeshAgent>();
+
+        if (animator == null)
+            animator = GetComponent<Animator>(); // tenta pegar automaticamente se não foi arrastado no Inspector
+
         MudarEstado(EstadoInimigo.Patrulhando);
     }
 
@@ -54,6 +61,11 @@ public class Enemy : MonoBehaviour
         if (estadoAtual == EstadoInimigo.Patrulhando)
         {
             IrParaPontoAleatorio();
+            AtualizarAnimacao(isWalking: true);
+        }
+        else if (estadoAtual == EstadoInimigo.Parado)
+        {
+            AtualizarAnimacao(isWalking: false);
         }
     }
 
@@ -61,6 +73,17 @@ public class Enemy : MonoBehaviour
     {
         Vector3 pontoAleatorio = GerarPontoAleatorioNoNavMesh(transform.position, raioDePatrulha);
         agent.SetDestination(pontoAleatorio);
+
+        // Sorteia o tipo de caminhada (0 ou 1) pra esse trecho de patrulha
+        float tipoCaminhada = Random.Range(0, 2); // retorna 0 ou 1
+        if (animator != null)
+            animator.SetFloat("Walk", tipoCaminhada);
+    }
+
+    private void AtualizarAnimacao(bool isWalking)
+    {
+        if (animator == null) return;
+        animator.SetBool("Is_Moving", isWalking);
     }
 
     private Vector3 GerarPontoAleatorioNoNavMesh(Vector3 origem, float distancia)
@@ -69,12 +92,10 @@ public class Enemy : MonoBehaviour
         direcaoAleatoria += origem;
 
         NavMeshHit hit;
-        // Busca o ponto válido mais próximo no NavMesh do pacote AI Navigation
         if (NavMesh.SamplePosition(direcaoAleatoria, out hit, distancia, NavMesh.AllAreas))
         {
             return hit.position;
         }
-
         return origem;
     }
 
@@ -83,10 +104,8 @@ public class Enemy : MonoBehaviour
         estaMudandoDeEstado = true;
         MudarEstado(EstadoInimigo.Parado);
 
-        // Reseta o caminho atual do agente
         agent.ResetPath();
 
-        // Define um tempo aleatório para ficar parado
         float tempoEspera = Random.Range(tempoMinParado, tempoMaxParado);
         yield return new WaitForSeconds(tempoEspera);
 
