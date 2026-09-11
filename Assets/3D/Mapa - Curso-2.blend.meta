@@ -3,7 +3,52 @@ guid: 80b0e337da6da774cb20acbdebb03f3e
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Big_Floor
+    second: {fileID: 2100000, guid: 467ab15bf7d21494b820075da800edcd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Big_Teto
+    second: {fileID: 2100000, guid: 7a6b02e420d770148b4233802eab9d0a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Big_Wall
+    second: {fileID: 2100000, guid: 5368f34354271464dbd13d03bd672fd0, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hall_Floor
+    second: {fileID: 2100000, guid: 55d1fa1dbaab1f243aabb292909c318d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hall_Kina
+    second: {fileID: 2100000, guid: 4e32b48dfceb12f4eb02ee6f79883f79, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hall_Teto
+    second: {fileID: 2100000, guid: bcb247aa26522304da0fb9a99041fbbd, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hall_Walls
+    second: {fileID: 2100000, guid: 711e08a52a0d48343848dc273c235b78, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Teto.001
+    second: {fileID: 2100000, guid: 5a4f605046e61734586dbeca40f72d8e, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Vrido
+    second: {fileID: 2100000, guid: c5cf8a859bd536c46ba29dfbbf4a0996, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
