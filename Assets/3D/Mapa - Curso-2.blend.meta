@@ -8,47 +8,47 @@ ModelImporter:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Big_Floor
-    second: {fileID: 2100000, guid: 467ab15bf7d21494b820075da800edcd, type: 2}
+    second: {fileID: 2100000, guid: 8933153cf556aa740a62de892722db42, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Big_Teto
-    second: {fileID: 2100000, guid: 7a6b02e420d770148b4233802eab9d0a, type: 2}
+    second: {fileID: 2100000, guid: 51bc97259424b944fb2030dd5ee829d8, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Big_Wall
-    second: {fileID: 2100000, guid: 5368f34354271464dbd13d03bd672fd0, type: 2}
+    second: {fileID: 2100000, guid: e11e579d92b2bbe4dbf8b26129fdd843, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Hall_Floor
-    second: {fileID: 2100000, guid: 55d1fa1dbaab1f243aabb292909c318d, type: 2}
+    second: {fileID: 2100000, guid: c3baa3a6c9ffd714eafd9d9f9f710ca8, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Hall_Kina
-    second: {fileID: 2100000, guid: 4e32b48dfceb12f4eb02ee6f79883f79, type: 2}
+    second: {fileID: 2100000, guid: f5c86551903015b4d8efdc6ba2548e94, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Hall_Teto
-    second: {fileID: 2100000, guid: bcb247aa26522304da0fb9a99041fbbd, type: 2}
+    second: {fileID: 2100000, guid: 1940527a31cd25f4e976aaa3eaf1715a, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Hall_Teto.001
+    second: {fileID: 2100000, guid: e53cd2d2d2c4c8c4c825eceee98dde6f, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Hall_Walls
-    second: {fileID: 2100000, guid: 711e08a52a0d48343848dc273c235b78, type: 2}
-  - first:
-      type: UnityEngine:Material
-      assembly: UnityEngine.CoreModule
-      name: Teto.001
-    second: {fileID: 2100000, guid: 5a4f605046e61734586dbeca40f72d8e, type: 2}
+    second: {fileID: 2100000, guid: 74a5cbc187b707d49bcb20832d67e82e, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
       name: Vrido
-    second: {fileID: 2100000, guid: c5cf8a859bd536c46ba29dfbbf4a0996, type: 2}
+    second: {fileID: 2100000, guid: 651b14fafac963b449d2ea9062fc80ad, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
