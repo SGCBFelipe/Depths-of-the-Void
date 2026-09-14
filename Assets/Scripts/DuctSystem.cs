@@ -15,6 +15,10 @@ public class DuctSystem : MonoBehaviour
     [SerializeField] private Collider interactionArea;
     [SerializeField] private Collider exitArea;
 
+    [Header("Segurança (Failsafe)")]
+    [Tooltip("Distância máxima (em metros) que o jogador pode se afastar antes de cancelar a interação")]
+    [SerializeField] private float maxInteractDistance = 3f;
+
     private bool canInteract = false;
     private PlayerDuctHandler currentPlayer;
 
@@ -30,16 +34,23 @@ public class DuctSystem : MonoBehaviour
 
     private void Start()
     {
-        // Garante que o Billboard comece escondido
         if (billboard != null)
             billboard.SetActive(false);
     }
 
     private void Update()
     {
-        // Se o player está na área de entrada e apertou 'E' (ou botão de interagir)
         if (canInteract && currentPlayer != null && !currentPlayer.IsInsideDuct)
         {
+            // Mede a distância até o limite físico do colisor, e não o centro do objeto
+            float distance = Vector3.Distance(currentPlayer.transform.position, interactionArea.ClosestPoint(currentPlayer.transform.position));
+
+            if (distance > maxInteractDistance)
+            {
+                OnPlayerExitEntrance();
+                return;
+            }
+
             if (interactAction != null && interactAction.action.WasPressedThisFrame())
             {
                 EnterDuct();
@@ -52,10 +63,13 @@ public class DuctSystem : MonoBehaviour
         canInteract = false;
         if (billboard != null) billboard.SetActive(false);
 
-        currentPlayer.EnterDuct(internSpawn);
+        // Salva a referência local e a limpa globalmente para evitar bugs de memória ao teleportar
+        PlayerDuctHandler playerToEnter = currentPlayer;
+        currentPlayer = null;
+
+        playerToEnter.EnterDuct(internSpawn);
     }
 
-    // Método chamado quando o player encosta na área de saída (Exit)
     public void TriggerExit(PlayerDuctHandler player)
     {
         if (player != null && player.IsInsideDuct)
@@ -64,7 +78,6 @@ public class DuctSystem : MonoBehaviour
         }
     }
 
-    // Detecção da Área de Interação (Entrada)
     public void OnPlayerEnterEntrance(PlayerDuctHandler player)
     {
         currentPlayer = player;
