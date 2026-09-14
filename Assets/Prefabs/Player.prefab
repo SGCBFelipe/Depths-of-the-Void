@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 5184718184218459426}
   - component: {fileID: 2246198342383927209}
   - component: {fileID: 971215028537470476}
+  - component: {fileID: 4298834544686422234}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -53,7 +54,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5140847217875955218}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -184,8 +185,23 @@ MonoBehaviour:
   jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   walkSpeed: 5
   sprintSpeed: 8
-  jumpHeight: 2
+  jumpHeight: 1
   gravity: -9.81
+--- !u!114 &4298834544686422234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5140847217875955218}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6880847ed5e7c39478768bfb905df9af, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: '::'
+  ductScaleFactor: 0.5
+  ductHeight: 0.01
+  ductCenter: {x: 0, y: 0.3, z: 0}
 --- !u!1 &5181179781755445485
 GameObject:
   m_ObjectHideFlags: 0
@@ -211,7 +227,7 @@ Transform:
   m_GameObject: {fileID: 5181179781755445485}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.7, z: 0}
+  m_LocalPosition: {x: 0, y: 0.6, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
