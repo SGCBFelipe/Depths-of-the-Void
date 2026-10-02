@@ -13,6 +13,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private bool vendoPlayerDebug;
     [SerializeField] private float distanciaAtualDebug;
     [SerializeField] private string objetoBloqueandoVisao = "Nenhum";
+    [SerializeField] private bool emPanicoDebug;
 
     [Header("Configurações de Movimento")]
     [SerializeField] private float raioDePatrulha = 15f;
@@ -30,11 +31,23 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float distanciaDespistar = 16f;
     [SerializeField] private float tempoParaPerderDeVista = 2.5f;
 
+    [Header("Detecção por Proximidade (inimigo 'cego')")]
+    [Tooltip("Raio em que o inimigo 'sente' o player mesmo sem ver (olfato/vibração), ideal para corredores apertados")]
+    [SerializeField] private float raioDeteccaoProximidade = 3f;
+    [Tooltip("Velocidade de corrida quando o player está muito perto (modo pânico)")]
+    [SerializeField] private float velocidadeCorridaPanico = 9f;
+    [Tooltip("Por quantos segundos, após o player se afastar do raio de proximidade, o inimigo ainda mantém a velocidade de pânico")]
+    [SerializeField] private float duracaoPanicoAposAfastar = 3f;
+
     [Header("Configurações de Alerta")]
     [SerializeField] private float velocidadeRotacaoAlerta = 8f;
 
     [Header("Animação")]
     [SerializeField] private Animator animator;
+
+    [Header("Morte / Respawn")]
+    [Tooltip("Objeto vazio para onde o inimigo é teleportado quando morre")]
+    [SerializeField] private Transform spawner;
 
     private NavMeshAgent agent;
     private bool estaMudandoDeEstado = false;
@@ -43,6 +56,9 @@ public class Enemy : MonoBehaviour
     private Vector3 pontoPartidaDebug;
     private Vector3 pontoDestinoDebug;
     private Color corRaioDebug = Color.yellow;
+
+    private bool emPanico = false;
+    private float temporizadorPanico = 0f;
 
     void Start()
     {
@@ -65,8 +81,40 @@ public class Enemy : MonoBehaviour
 
     void Update()
     {
+        ProcessarDeteccaoPorProximidade();
         ProcessarSensoriamento();
         AcordoComEstado();
+    }
+
+    private void ProcessarDeteccaoPorProximidade()
+    {
+        if (player == null) return;
+
+        float distanciaReal = Vector3.Distance(transform.position, player.position);
+
+        if (distanciaReal <= raioDeteccaoProximidade)
+        {
+            // O inimigo "sente" o player de perto, mesmo sem linha de visão
+            emPanico = true;
+            temporizadorPanico = duracaoPanicoAposAfastar;
+            temporizadorPerderVista = 0f;
+
+            if (estadoAtual != EstadoInimigo.Perseguindo)
+            {
+                MudarEstado(EstadoInimigo.Perseguindo);
+            }
+        }
+        else if (emPanico)
+        {
+            // Player se afastou do raio de proximidade: começa a contar para sair do pânico
+            temporizadorPanico -= Time.deltaTime;
+            if (temporizadorPanico <= 0f)
+            {
+                emPanico = false;
+            }
+        }
+
+        emPanicoDebug = emPanico;
     }
 
     private void ProcessarSensoriamento()
@@ -99,6 +147,9 @@ public class Enemy : MonoBehaviour
         }
         else
         {
+            // Enquanto estiver em pânico (proximidade), não deixa cair de Perseguindo por falta de visão
+            if (emPanico) return;
+
             // Lógica para perder de vista / desistir
             if (estadoAtual == EstadoInimigo.Perseguindo || estadoAtual == EstadoInimigo.Alerta)
             {
@@ -194,6 +245,7 @@ public class Enemy : MonoBehaviour
             case EstadoInimigo.Perseguindo:
                 if (player != null)
                 {
+                    agent.speed = emPanico ? velocidadeCorridaPanico : velocidadePerseguicao;
                     agent.SetDestination(player.position);
                 }
                 break;
@@ -245,7 +297,7 @@ public class Enemy : MonoBehaviour
 
             case EstadoInimigo.Perseguindo:
                 agent.isStopped = false;
-                agent.speed = velocidadePerseguicao;
+                agent.speed = emPanico ? velocidadeCorridaPanico : velocidadePerseguicao;
                 AtualizarAnimacao(isWalking: true);
                 break;
         }
@@ -292,6 +344,40 @@ public class Enemy : MonoBehaviour
         MudarEstado(EstadoInimigo.Patrulhando);
     }
 
+    /// <summary>
+    /// Chame este método de onde quer que a morte do inimigo seja detectada
+    /// (trap, dano do player, etc). Ele reseta o estado e teleporta o inimigo
+    /// de volta para o "spawner" definido no Inspector.
+    /// </summary>
+    public void Morrer()
+    {
+        if (spawner == null)
+        {
+            Debug.LogWarning("Enemy: o campo 'Spawner' não foi definido no Inspector. Não é possível teleportar.", this);
+            return;
+        }
+
+        // Para qualquer coroutine de espera em andamento
+        if (rotinaEspera != null)
+        {
+            StopCoroutine(rotinaEspera);
+            rotinaEspera = null;
+        }
+
+        // Reseta variáveis de estado
+        emPanico = false;
+        temporizadorPanico = 0f;
+        temporizadorPerderVista = 0f;
+        estaMudandoDeEstado = false;
+
+        // Warp em vez de transform.position: evita que o NavMeshAgent
+        // tente "corrigir" o teleporte andando de volta ao ponto antigo
+        agent.Warp(spawner.position);
+        transform.rotation = spawner.rotation;
+
+        MudarEstado(EstadoInimigo.Patrulhando);
+    }
+
     private void OnDrawGizmos()
     {
         // Linha do Raycast visível na aba Scene/Game
@@ -305,5 +391,9 @@ public class Enemy : MonoBehaviour
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, distanciaPerseguirGarantida);
+
+        // Raio de detecção por proximidade (cego, mas sente perto)
+        Gizmos.color = new Color(1f, 0.5f, 0f); // laranja
+        Gizmos.DrawWireSphere(transform.position, raioDeteccaoProximidade);
     }
 }
