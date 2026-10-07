@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Escolhe luzes aleatórias dentro de um objeto pai (ex: "Lights") e faz
+/// Escolhe luzes aleatórias de uma lista definida no Inspector e faz
 /// elas piscarem durante um intervalo de tempo. Pode repetir em loop,
 /// escolhendo um novo conjunto de luzes a cada ciclo.
 /// </summary>
 public class FlickerLightsManager : MonoBehaviour
 {
     [Header("Referências")]
-    [Tooltip("Arraste aqui o objeto pai que contém todas as luzes (ex: 'Lights')")]
-    [SerializeField] private Transform _lightsParent;
+    [Tooltip("Adicione aqui todas as luzes que vão sofrer o efeito")]
+    [SerializeField] private List<Light> _targetLights = new List<Light>();
 
     [Header("Quantidade de luzes por ciclo")]
     [SerializeField] private int _minLightsToFlicker = 2;
@@ -31,53 +31,46 @@ public class FlickerLightsManager : MonoBehaviour
     [SerializeField] private float _minTimeBetweenCycles = 3f;
     [SerializeField] private float _maxTimeBetweenCycles = 10f;
 
-    private readonly List<Light> _allLights = new List<Light>();
-
     private void Start()
     {
-        CollectLights();
-        StartCoroutine(FlickerCycleRoutine());
-    }
+        // Remove da lista espaços vazios (null) caso algum slot fique em branco no Inspector
+        _targetLights.RemoveAll(l => l == null);
 
-    private void CollectLights()
-    {
-        _allLights.Clear();
-
-        if (_lightsParent == null)
+        if (_targetLights.Count == 0)
         {
-            Debug.LogWarning("FlickerLightsManager: nenhum 'Lights Parent' foi definido no Inspector.");
+            Debug.LogWarning("FlickerLightsManager: Nenhuma luz foi adicionada à lista '_targetLights'.");
             return;
         }
 
-        // Pega todas as luzes filhas (Point Lights, Spot Lights, etc.), incluindo inativas
-        Light[] lightsInChildren = _lightsParent.GetComponentsInChildren<Light>(true);
-        _allLights.AddRange(lightsInChildren);
-
-        Debug.Log($"FlickerLightsManager: {_allLights.Count} luzes encontradas.");
+        StartCoroutine(FlickerCycleRoutine());
     }
 
     private IEnumerator FlickerCycleRoutine()
     {
         do
         {
-            if (_allLights.Count > 0)
+            if (_targetLights.Count > 0)
             {
+                // Define quantas luzes vão piscar neste ciclo
                 int count = Random.Range(_minLightsToFlicker, _maxLightsToFlicker + 1);
-                count = Mathf.Min(count, _allLights.Count);
+                count = Mathf.Min(count, _targetLights.Count);
 
                 List<Light> chosen = PickRandomLights(count);
                 float duration = Random.Range(_minFlickerDuration, _maxFlickerDuration);
 
+                // Inicia o efeito para cada luz escolhida
                 foreach (Light light in chosen)
                 {
                     StartCoroutine(FlickerSingleLight(light, duration));
                 }
 
+                // Espera a duração do piscar acabar
                 yield return new WaitForSeconds(duration);
             }
 
             if (_loop)
             {
+                // Espera um tempo antes de começar o próximo ciclo
                 float wait = Random.Range(_minTimeBetweenCycles, _maxTimeBetweenCycles);
                 yield return new WaitForSeconds(wait);
             }
@@ -87,7 +80,8 @@ public class FlickerLightsManager : MonoBehaviour
 
     private List<Light> PickRandomLights(int count)
     {
-        List<Light> pool = new List<Light>(_allLights);
+        // Cria uma cópia da lista original para podermos remover os itens já sorteados
+        List<Light> pool = new List<Light>(_targetLights);
         List<Light> result = new List<Light>();
 
         for (int i = 0; i < count && pool.Count > 0; i++)
@@ -116,6 +110,7 @@ public class FlickerLightsManager : MonoBehaviour
 
             light.intensity = Mathf.Lerp(light.intensity, targetIntensity, Time.deltaTime * 10f);
 
+            // Troca o alvo da intensidade de tempos em tempos
             if (timer >= _flickerChangeInterval)
             {
                 targetIntensity = Random.Range(_minIntensity, _maxIntensity);

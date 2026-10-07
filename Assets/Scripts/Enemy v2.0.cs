@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.AI;
 using System.Collections;
-using System.Collections.Generic;
 
 [RequireComponent(typeof(NavMeshAgent))]
 public class Enemy : MonoBehaviour
@@ -32,11 +31,11 @@ public class Enemy : MonoBehaviour
     [SerializeField] private float tempoParaPerderDeVista = 2.5f;
 
     [Header("Detecção por Proximidade (inimigo 'cego')")]
-    [Tooltip("Raio em que o inimigo 'sente' o player mesmo sem ver (olfato/vibração), ideal para corredores apertados")]
+    [Tooltip("Raio em que o inimigo 'sente' o player mesmo sem ver (olfato/vibração)")]
     [SerializeField] private float raioDeteccaoProximidade = 3f;
     [Tooltip("Velocidade de corrida quando o player está muito perto (modo pânico)")]
     [SerializeField] private float velocidadeCorridaPanico = 9f;
-    [Tooltip("Por quantos segundos, após o player se afastar do raio de proximidade, o inimigo ainda mantém a velocidade de pânico")]
+    [Tooltip("Tempo mantendo a velocidade de pânico após o player se afastar")]
     [SerializeField] private float duracaoPanicoAposAfastar = 3f;
 
     [Header("Configurações de Alerta")]
@@ -44,10 +43,6 @@ public class Enemy : MonoBehaviour
 
     [Header("Animação")]
     [SerializeField] private Animator animator;
-
-    [Header("Morte / Respawn")]
-    [Tooltip("Objeto vazio para onde o inimigo é teleportado quando morre")]
-    [SerializeField] private Transform spawner;
 
     private NavMeshAgent agent;
     private bool estaMudandoDeEstado = false;
@@ -73,7 +68,7 @@ public class Enemy : MonoBehaviour
             if (playerObj != null)
                 player = playerObj.transform;
             else
-                Debug.LogError("Enemy: Nenhum objeto com a Tag 'Player' foi encontrado no cenário!");
+                Debug.LogError("Enemy: Nenhum objeto com a Tag 'Player' foi encontrado!");
         }
 
         MudarEstado(EstadoInimigo.Patrulhando);
@@ -94,7 +89,6 @@ public class Enemy : MonoBehaviour
 
         if (distanciaReal <= raioDeteccaoProximidade)
         {
-            // O inimigo "sente" o player de perto, mesmo sem linha de visão
             emPanico = true;
             temporizadorPanico = duracaoPanicoAposAfastar;
             temporizadorPerderVista = 0f;
@@ -106,7 +100,6 @@ public class Enemy : MonoBehaviour
         }
         else if (emPanico)
         {
-            // Player se afastou do raio de proximidade: começa a contar para sair do pânico
             temporizadorPanico -= Time.deltaTime;
             if (temporizadorPanico <= 0f)
             {
@@ -123,7 +116,6 @@ public class Enemy : MonoBehaviour
 
         bool vendoPlayer = ChecarVisaoPlayer(out float distanciaPlayer);
 
-        // Atualiza variáveis de debug visíveis no Inspector
         vendoPlayerDebug = vendoPlayer;
         distanciaAtualDebug = distanciaPlayer;
 
@@ -131,7 +123,6 @@ public class Enemy : MonoBehaviour
         {
             temporizadorPerderVista = 0f;
 
-            // Transição para Perseguindo
             if (distanciaPlayer <= distanciaPerseguirGarantida || estadoAtual == EstadoInimigo.Alerta)
             {
                 if (estadoAtual != EstadoInimigo.Perseguindo)
@@ -139,7 +130,6 @@ public class Enemy : MonoBehaviour
                     MudarEstado(EstadoInimigo.Perseguindo);
                 }
             }
-            // Transição para Alerta
             else if (estadoAtual == EstadoInimigo.Parado || estadoAtual == EstadoInimigo.Patrulhando)
             {
                 MudarEstado(EstadoInimigo.Alerta);
@@ -147,10 +137,8 @@ public class Enemy : MonoBehaviour
         }
         else
         {
-            // Enquanto estiver em pânico (proximidade), não deixa cair de Perseguindo por falta de visão
             if (emPanico) return;
 
-            // Lógica para perder de vista / desistir
             if (estadoAtual == EstadoInimigo.Perseguindo || estadoAtual == EstadoInimigo.Alerta)
             {
                 temporizadorPerderVista += Time.deltaTime;
@@ -174,7 +162,6 @@ public class Enemy : MonoBehaviour
         pontoPartidaDebug = origem;
         pontoDestinoDebug = destino;
 
-        // 1. Checa alcance
         if (distancia > alcanceVisao)
         {
             objetoBloqueandoVisao = "Fora do Alcance";
@@ -182,7 +169,6 @@ public class Enemy : MonoBehaviour
             return false;
         }
 
-        // 2. Checa ângulo de visão (FOV)
         float angulo = Vector3.Angle(transform.forward, direcao);
         if (angulo > anguloVisao / 2f)
         {
@@ -191,30 +177,24 @@ public class Enemy : MonoBehaviour
             return false;
         }
 
-        // 3. Lança RaycastAll para ignorar colisões do próprio inimigo
         RaycastHit[] hits = Physics.RaycastAll(origem, direcao, alcanceVisao, ~0, QueryTriggerInteraction.Ignore);
-
-        // Ordena colisões da mais próxima para a mais distante
         System.Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
 
         foreach (RaycastHit hit in hits)
         {
-            // Ignora colisão se for o próprio inimigo ou filhos dele
             if (hit.transform == transform || hit.transform.IsChildOf(transform))
                 continue;
 
             objetoBloqueandoVisao = hit.transform.name;
 
-            // Se atingir o Player (ou filho do Player ou tag Player)
             if (hit.transform == player || hit.transform.IsChildOf(player) || hit.transform.CompareTag("Player"))
             {
-                corRaioDebug = Color.green; // Visão limpa!
+                corRaioDebug = Color.green;
                 return true;
             }
             else
             {
-                // Atingiu um obstáculo antes de chegar no Player
-                corRaioDebug = Color.red; // Bloqueado por parede/objeto
+                corRaioDebug = Color.red;
                 return false;
             }
         }
@@ -272,7 +252,6 @@ public class Enemy : MonoBehaviour
             rotinaEspera = null;
         }
         estaMudandoDeEstado = false;
-
         estadoAtual = novoEstado;
 
         switch (estadoAtual)
@@ -344,56 +323,19 @@ public class Enemy : MonoBehaviour
         MudarEstado(EstadoInimigo.Patrulhando);
     }
 
-    /// <summary>
-    /// Chame este método de onde quer que a morte do inimigo seja detectada
-    /// (trap, dano do player, etc). Ele reseta o estado e teleporta o inimigo
-    /// de volta para o "spawner" definido no Inspector.
-    /// </summary>
-    public void Morrer()
-    {
-        if (spawner == null)
-        {
-            Debug.LogWarning("Enemy: o campo 'Spawner' não foi definido no Inspector. Não é possível teleportar.", this);
-            return;
-        }
-
-        // Para qualquer coroutine de espera em andamento
-        if (rotinaEspera != null)
-        {
-            StopCoroutine(rotinaEspera);
-            rotinaEspera = null;
-        }
-
-        // Reseta variáveis de estado
-        emPanico = false;
-        temporizadorPanico = 0f;
-        temporizadorPerderVista = 0f;
-        estaMudandoDeEstado = false;
-
-        // Warp em vez de transform.position: evita que o NavMeshAgent
-        // tente "corrigir" o teleporte andando de volta ao ponto antigo
-        agent.Warp(spawner.position);
-        transform.rotation = spawner.rotation;
-
-        MudarEstado(EstadoInimigo.Patrulhando);
-    }
-
     private void OnDrawGizmos()
     {
-        // Linha do Raycast visível na aba Scene/Game
         Gizmos.color = corRaioDebug;
         Gizmos.DrawLine(pontoPartidaDebug, pontoDestinoDebug);
         Gizmos.DrawSphere(pontoPartidaDebug, 0.1f);
 
-        // Círculos de Alcance (quando o objeto está selecionado)
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, alcanceVisao);
 
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(transform.position, distanciaPerseguirGarantida);
 
-        // Raio de detecção por proximidade (cego, mas sente perto)
-        Gizmos.color = new Color(1f, 0.5f, 0f); // laranja
+        Gizmos.color = new Color(1f, 0.5f, 0f);
         Gizmos.DrawWireSphere(transform.position, raioDeteccaoProximidade);
     }
 }
