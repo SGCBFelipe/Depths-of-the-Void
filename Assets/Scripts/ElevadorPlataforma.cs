@@ -1,135 +1,162 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
-/// <summary>
-/// Elevador / plataforma móvel que se desloca E gira quando o jogador está em cima.
-/// Move-se nos 3 eixos (X, Y, Z) e gira nos 3 eixos (ângulos de Euler).
-/// Posição e rotação andam sincronizadas: chegam ao destino ao mesmo tempo.
-///
-/// SETUP:
-/// 1. Coloque este script no objeto da plataforma (precisa de um Collider sólido para o jogador pisar).
-/// 2. Adicione OUTRO BoxCollider no mesmo objeto, marque "Is Trigger" e deixe-o um pouco
-///    mais alto que a plataforma (para pegar o jogador em cima dela).
-/// 3. Coloque a tag "Player" no jogador (ou mude a tag no Inspector).
-/// 4. Ajuste "Deslocamento" e "Angulo Rotacao" no Inspector.
-/// </summary>
-[RequireComponent(typeof(Rigidbody))]
+[System.Serializable]
+public struct ConfiguracaoAndar
+{
+    public string nomeAndar;
+    [Tooltip("Posição exata do elevador neste andar")]
+    public Vector3 posicao;
+    [Tooltip("Rotação em graus (X, Y, Z) do elevador neste andar")]
+    public Vector3 rotacao;
+}
+
+[RequireComponent(typeof(Collider))]
 public class ElevadorPlataforma : MonoBehaviour
 {
-    [Header("Movimento")]
-    [Tooltip("Quanto a plataforma se desloca a partir da posição inicial (X, Y, Z em unidades do mundo).")]
-    [SerializeField] private Vector3 deslocamento = new Vector3(0f, 5f, 0f);
+    [Header("Referências")]
+    public Transform jogador;
+    public Transform portaEsquerda;
+    public Transform portaDireita;
 
-    [Tooltip("Velocidade em unidades por segundo.")]
-    [SerializeField] private float velocidade = 2f;
+    [Header("Configuração de Andares")]
+    public List<ConfiguracaoAndar> andares = new List<ConfiguracaoAndar>();
+    public float velocidadeElevador = 3f;
 
-    [Header("Rotação")]
-    [Tooltip("Quanto a plataforma gira (graus em X, Y, Z) em relação à rotação inicial. Ex.: (0, 90, 0) gira 90° no eixo Y. Aceita valores acima de 180 (ex.: 360 = volta completa).")]
-    [SerializeField] private Vector3 anguloRotacao = new Vector3(0f, 90f, 0f);
+    [Header("Configuração das Portas")]
+    public Vector3 eixoDeAbertura = new Vector3(1.5f, 0, 0);
+    public float velocidadePortas = 5f;
 
-    [Tooltip("Velocidade de rotação em graus por segundo.")]
-    [SerializeField] private float velocidadeRotacao = 45f;
+    private Vector3 esqFechada, dirFechada;
+    private Vector3 esqAberta, dirAberta;
 
-    [Header("Comportamento")]
-    [Tooltip("Tempo de espera (s) antes de começar a mover depois que o jogador sobe.")]
-    [SerializeField] private float atrasoParaIniciar = 0.3f;
+    private int andarAtual = 0;
+    private bool emMovimento = false;
+    private bool portasAbertas = false;
+    private Coroutine rotinaPortas;
 
-    [Tooltip("Se ligado, a plataforma volta (posição e rotação) quando o jogador sai.")]
-    [SerializeField] private bool voltarQuandoJogadorSai = true;
-
-    [Tooltip("Se ligado, o jogador vira filho da plataforma enquanto está em cima (acompanha movimento e giro).")]
-    [SerializeField] private bool carregarJogador = true;
-
-    [SerializeField] private string tagJogador = "Player";
-
-    private Rigidbody rb;
-    private Vector3 posicaoInicial;
-    private Quaternion rotacaoInicial;
-    private float duracao;       // tempo (s) para ir de 0 a 1
-    private float progresso;     // 0 = posição/rotação inicial, 1 = final
-    private bool jogadorEmCima;
-    private float contadorAtraso;
-
-    private void Awake()
+    private void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        rb.isKinematic = true;
-        rb.useGravity = false;
+        if (jogador == null)
+        {
+            GameObject objJogador = GameObject.FindGameObjectWithTag("Player");
+            if (objJogador != null) jogador = objJogador.transform;
+        }
 
-        posicaoInicial = transform.position;
-        rotacaoInicial = transform.rotation;
+        esqFechada = portaEsquerda.localPosition;
+        dirFechada = portaDireita.localPosition;
+        esqAberta = esqFechada + eixoDeAbertura;
+        dirAberta = dirFechada - eixoDeAbertura;
 
-        // Duração = o que demorar mais: deslocar ou girar (assim os dois terminam juntos)
-        float tempoMovimento = velocidade > 0f ? deslocamento.magnitude / velocidade : 0f;
-        float maiorAngulo = Mathf.Max(Mathf.Abs(anguloRotacao.x),
-                            Mathf.Max(Mathf.Abs(anguloRotacao.y), Mathf.Abs(anguloRotacao.z)));
-        float tempoRotacao = velocidadeRotacao > 0f ? maiorAngulo / velocidadeRotacao : 0f;
-        duracao = Mathf.Max(tempoMovimento, tempoRotacao, 0.01f);
+        if (andares.Count > 0)
+        {
+            transform.position = andares[0].posicao;
+            transform.rotation = Quaternion.Euler(andares[0].rotacao);
+        }
     }
 
-    private void FixedUpdate()
+    // O uso do BoxCollider substitui a necessidade de calcular distâncias no Update
+    private void Update()
     {
-        float alvoProgresso;
-
-        if (jogadorEmCima)
-        {
-            if (contadorAtraso > 0f)
-            {
-                contadorAtraso -= Time.fixedDeltaTime;
-                return;
-            }
-            alvoProgresso = 1f;
-        }
-        else if (voltarQuandoJogadorSai)
-        {
-            alvoProgresso = 0f;
-        }
-        else
-        {
-            return; // fica parado onde está
-        }
-
-        progresso = Mathf.MoveTowards(progresso, alvoProgresso, Time.fixedDeltaTime / duracao);
-
-        rb.MovePosition(posicaoInicial + deslocamento * progresso);
-        rb.MoveRotation(rotacaoInicial * Quaternion.Euler(anguloRotacao * progresso));
+        // Deixei em branco caso precise colocar alguma outra lógica no futuro
     }
 
+    // Detecta quando o jogador entra no BoxCollider
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag(tagJogador)) return;
+        // Evita abrir as portas se o elevador estiver no meio da viagem
+        if (emMovimento) return;
 
-        jogadorEmCima = true;
-        contadorAtraso = atrasoParaIniciar;
+        if (other.CompareTag("Player"))
+        {
+            // Abre as portas
+            AbrirPortas();
 
-        if (carregarJogador)
+            // Põe o jogador como "filho" do elevador para que ele não caia ao subir/descer
             other.transform.SetParent(transform);
+        }
     }
 
+    // Detecta quando o jogador sai totalmente do elevador
     private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag(tagJogador)) return;
-
-        jogadorEmCima = false;
-
-        if (carregarJogador && other.transform.parent == transform)
+        if (other.CompareTag("Player"))
+        {
+            // Tira o jogador do elevador na hierarquia (ele volta a ser livre na cena)
             other.transform.SetParent(null);
+
+            // As portas NÃO fecham aqui. Elas ficarão abertas esperando o próximo comando.
+        }
     }
 
-    // Mostra o trajeto no editor (linha amarela) e a pose final (cubo verde, já girado)
-    private void OnDrawGizmosSelected()
+    public void IrParaAndar(int indiceAndar)
     {
-        Vector3 inicio = Application.isPlaying ? posicaoInicial : transform.position;
-        Quaternion rotBase = Application.isPlaying ? rotacaoInicial : transform.rotation;
-        Vector3 fim = inicio + deslocamento;
-        Quaternion rotFim = rotBase * Quaternion.Euler(anguloRotacao);
+        if (emMovimento || indiceAndar == andarAtual) return;
+        if (indiceAndar < 0 || indiceAndar >= andares.Count) return;
 
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawLine(inicio, fim);
+        StartCoroutine(RotinaMoverElevador(indiceAndar));
+    }
 
-        Gizmos.color = Color.green;
-        Matrix4x4 anterior = Gizmos.matrix;
-        Gizmos.matrix = Matrix4x4.TRS(fim, rotFim, transform.localScale);
-        Gizmos.DrawWireCube(Vector3.zero, Vector3.one);
-        Gizmos.matrix = anterior;
+    private IEnumerator RotinaMoverElevador(int indiceAndar)
+    {
+        emMovimento = true;
+
+        // 1. Ao receber o comando de ir para o andar, a primeira coisa é FECHAR as portas
+        if (rotinaPortas != null) StopCoroutine(rotinaPortas);
+        yield return StartCoroutine(RotinaMoverPortas(false));
+
+        // 2. Prepara e inicia a viagem do elevador
+        ConfiguracaoAndar destino = andares[indiceAndar];
+        Vector3 posInicial = transform.position;
+        Quaternion rotInicial = transform.rotation;
+        Quaternion rotDestino = Quaternion.Euler(destino.rotacao);
+
+        float distancia = Vector3.Distance(posInicial, destino.posicao);
+        float duracao = distancia / velocidadeElevador;
+        float tempo = 0f;
+
+        while (tempo < duracao)
+        {
+            tempo += Time.deltaTime;
+            float t = Mathf.SmoothStep(0f, 1f, tempo / duracao);
+
+            transform.position = Vector3.Lerp(posInicial, destino.posicao, t);
+            transform.rotation = Quaternion.Lerp(rotInicial, rotDestino, t);
+            yield return null;
+        }
+
+        transform.position = destino.posicao;
+        transform.rotation = rotDestino;
+        andarAtual = indiceAndar;
+
+        // 3. Chegou no destino: ABRE as portas novamente
+        yield return StartCoroutine(RotinaMoverPortas(true));
+
+        emMovimento = false;
+    }
+
+    private void AbrirPortas()
+    {
+        if (portasAbertas) return;
+        if (rotinaPortas != null) StopCoroutine(rotinaPortas);
+        rotinaPortas = StartCoroutine(RotinaMoverPortas(true));
+    }
+
+    private IEnumerator RotinaMoverPortas(bool abrir)
+    {
+        portasAbertas = abrir;
+        Vector3 alvoEsq = abrir ? esqAberta : esqFechada;
+        Vector3 alvoDir = abrir ? dirAberta : dirFechada;
+
+        while (Vector3.Distance(portaEsquerda.localPosition, alvoEsq) > 0.001f)
+        {
+            portaEsquerda.localPosition = Vector3.Lerp(portaEsquerda.localPosition, alvoEsq, Time.deltaTime * velocidadePortas);
+            portaDireita.localPosition = Vector3.Lerp(portaDireita.localPosition, alvoDir, Time.deltaTime * velocidadePortas);
+            yield return null;
+        }
+
+        portaEsquerda.localPosition = alvoEsq;
+        portaDireita.localPosition = alvoDir;
     }
 }
