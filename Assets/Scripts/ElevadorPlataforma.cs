@@ -31,8 +31,9 @@ public class ElevadorPlataforma : MonoBehaviour
     private Vector3 esqFechada, dirFechada;
     private Vector3 esqAberta, dirAberta;
 
-    private int andarAtual = 0;
-    private bool emMovimento = false;
+    // Substitua as variáveis privadas antigas por estas propriedades públicas (mas que só o elevador altera):
+    public int AndarAtual { get; private set; } = 0;
+    public bool EstaEmMovimento { get; private set; } = false;
     private bool portasAbertas = false;
     private Coroutine rotinaPortas;
 
@@ -66,7 +67,7 @@ public class ElevadorPlataforma : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Evita abrir as portas se o elevador estiver no meio da viagem
-        if (emMovimento) return;
+        if (EstaEmMovimento) return;
 
         if (other.CompareTag("Player"))
         {
@@ -92,7 +93,7 @@ public class ElevadorPlataforma : MonoBehaviour
 
     public void IrParaAndar(int indiceAndar)
     {
-        if (emMovimento || indiceAndar == andarAtual) return;
+        if (EstaEmMovimento || indiceAndar == AndarAtual) return;
         if (indiceAndar < 0 || indiceAndar >= andares.Count) return;
 
         StartCoroutine(RotinaMoverElevador(indiceAndar));
@@ -100,7 +101,7 @@ public class ElevadorPlataforma : MonoBehaviour
 
     private IEnumerator RotinaMoverElevador(int indiceAndar)
     {
-        emMovimento = true;
+        EstaEmMovimento = true;
 
         // 1. Ao receber o comando de ir para o andar, a primeira coisa é FECHAR as portas
         if (rotinaPortas != null) StopCoroutine(rotinaPortas);
@@ -128,12 +129,19 @@ public class ElevadorPlataforma : MonoBehaviour
 
         transform.position = destino.posicao;
         transform.rotation = rotDestino;
-        andarAtual = indiceAndar;
+        AndarAtual = indiceAndar;
 
         // 3. Chegou no destino: ABRE as portas novamente
         yield return StartCoroutine(RotinaMoverPortas(true));
 
-        emMovimento = false;
+        EstaEmMovimento = false;
+
+        // NOVO: Pega todos os botões que são filhos do elevador e reseta a cor deles
+        BotaoElevador[] todosOsBotoes = GetComponentsInChildren<BotaoElevador>();
+        foreach (BotaoElevador btn in todosOsBotoes)
+        {
+            btn.ResetarBotao();
+        }
     }
 
     private void AbrirPortas()

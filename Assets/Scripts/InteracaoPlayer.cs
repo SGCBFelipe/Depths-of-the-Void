@@ -3,45 +3,48 @@ using UnityEngine.InputSystem;
 
 public class InteracaoPlayer : MonoBehaviour
 {
-    [Header("Configurações")]
     public float distanciaInteracao = 3f;
+    public InputActionReference interact;
 
-    [Tooltip("Atribua a ação de Input no Inspector")]
-    [SerializeField] private InputActionReference interact;
+    private BotaoElevador botaoAtualMirado; // Guarda o botão que estamos olhando no momento
 
-    private void OnEnable()
-    {
-        interact?.action.Enable();
-    }
-
-    private void OnDisable()
-    {
-        interact?.action.Disable();
-    }
+    private void OnEnable() => interact.action.Enable();
+    private void OnDisable() => interact.action.Disable();
 
     private void Update()
     {
-        // Lê diretamente se o botão foi pressionado neste frame, sem usar callbacks
-        if (interact.action.WasPressedThisFrame())
+        ExecutarRaycastVisao();
+
+        // Se clicou e estamos olhando para um botão, ativa a função de clique
+        if (interact.action.WasPressedThisFrame() && botaoAtualMirado != null)
         {
-            ExecutarRaycast();
+            botaoAtualMirado.AoClicar();
         }
     }
 
-    private void ExecutarRaycast()
+    private void ExecutarRaycastVisao()
     {
-        // Cria um raio partindo do centro da câmera para a frente
         Ray raio = new Ray(transform.position, transform.forward);
 
         if (Physics.Raycast(raio, out RaycastHit hit, distanciaInteracao))
         {
-            // Tenta achar o componente do botão no objeto que o raio atingiu
-            BotaoElevador botao = hit.collider.GetComponent<BotaoElevador>();
+            BotaoElevador botaoVisto = hit.collider.GetComponent<BotaoElevador>();
 
-            if (botao != null && botao.elevador != null)
+            // Se olhamos para um botão novo
+            if (botaoVisto != botaoAtualMirado)
             {
-                // Chama a função de mover passando o índice configurado no botão
-                botao.elevador.IrParaAndar(botao.indiceAndar);
+                if (botaoAtualMirado != null) botaoAtualMirado.AoTirarMira(); // Apaga o anterior
+                botaoAtualMirado = botaoVisto;
+                if (botaoAtualMirado != null) botaoAtualMirado.AoMirar();     // Acende o novo
+            }
+        }
+        else
+        {
+            // Se olhamos para o nada, apaga o último botão mirado
+            if (botaoAtualMirado != null)
+            {
+                botaoAtualMirado.AoTirarMira();
+                botaoAtualMirado = null;
             }
         }
     }
